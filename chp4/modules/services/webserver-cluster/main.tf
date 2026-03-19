@@ -1,8 +1,4 @@
 
-provider "aws" {
-  region = "us-east-2"
-}
-
 data "aws_vpc" "default" {
   default = true
 }
@@ -19,7 +15,7 @@ data "terraform_remote_state" "db" {
 
   config = {
     bucket = "h4tch-test-terraform-up-and-running-state"
-    key = "stage/data-stores/mysql/terraform.tfstate"
+    key    = "stage/data-stores/mysql/terraform.tfstate"
     region = "us-east-2"
   }
 }
@@ -40,8 +36,8 @@ resource "aws_launch_template" "example" {
 
   user_data = base64encode(templatefile("user-data.sh", {
     server_port = var.server_port
-    db_address = data.terraform_remote_state.db.outputs.address
-    db_port = data.terraform_remote_state.db.outputs.port
+    db_address  = data.terraform_remote_state.db.outputs.address
+    db_port     = data.terraform_remote_state.db.outputs.port
   }))
 
   # Required when using a launch configuration with an auto scaling group.
