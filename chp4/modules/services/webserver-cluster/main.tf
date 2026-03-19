@@ -14,8 +14,8 @@ data "terraform_remote_state" "db" {
   backend = "s3"
 
   config = {
-    bucket = "h4tch-test-terraform-up-and-running-state"
-    key    = "stage/data-stores/mysql/terraform.tfstate"
+    bucket = var.db_remote_state_bucket
+    key    = var.db_remote_state_key
     region = "us-east-2"
   }
 }
@@ -58,13 +58,13 @@ resource "aws_autoscaling_group" "example" {
   }
   tag {
     key                 = "Name"
-    value               = "terraform-asg-example"
+    value               = "${var.cluster_name}-asg"
     propagate_at_launch = true
   }
 }
 
 resource "aws_security_group" "instance" {
-  name = "terraform-example-instance"
+  name = "${var.cluster_name}-instance"
   ingress {
     from_port   = var.server_port
     to_port     = var.server_port
@@ -75,7 +75,7 @@ resource "aws_security_group" "instance" {
 
 
 resource "aws_lb" "example" {
-  name               = "terraform-asg-example"
+  name               = "${var.cluster_name}-lb"
   load_balancer_type = "application"
   subnets            = data.aws_subnets.default.ids
   security_groups    = [aws_security_group.alb.id]
@@ -115,7 +115,7 @@ resource "aws_security_group" "alb" {
 }
 
 resource "aws_lb_target_group" "asg" {
-  name     = "terraform-asg-example"
+  name     = "${var.cluster_name}-asg"
   port     = var.server_port
   protocol = "HTTP"
   vpc_id   = data.aws_vpc.default.id
