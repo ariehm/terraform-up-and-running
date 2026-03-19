@@ -1,0 +1,10 @@
+
+variable "names" {
+  description = "names to render"
+  type = list(string)
+  default = ["neo", "trinity", "morpheus"]
+}
+
+output "for_directive" {
+  value = "%{ for name in var.names }${name}, %{ endfor }"
+}
