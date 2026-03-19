@@ -1,4 +1,12 @@
 
+
+locals {
+  http_port = 80
+  any_port = 0
+  any_protocol = "-1"
+  tcp_protocol = "tcp"
+  all_ips = ["0.0.0.0/0"]
+}
 data "aws_vpc" "default" {
   default = true
 }
@@ -22,7 +30,7 @@ data "terraform_remote_state" "db" {
 
 resource "aws_launch_template" "example" {
   image_id               = "ami-0fb653ca2d3203ac1"
-  instance_type          = "t2.micro"
+  instance_type          = var.instance_type
   vpc_security_group_ids = [aws_security_group.instance.id]
 
   # user_data = base64encode(<<-EOF
@@ -50,8 +58,8 @@ resource "aws_autoscaling_group" "example" {
   vpc_zone_identifier = data.aws_subnets.default.ids
   target_group_arns   = [aws_lb_target_group.asg.arn]
   health_check_type   = "ELB"
-  min_size            = 2
-  max_size            = 10
+  min_size            = var.min_size
+  max_size            = var.max_size
   launch_template {
     id      = aws_launch_template.example.id
     version = "$Latest"
@@ -83,7 +91,7 @@ resource "aws_lb" "example" {
 
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.example.arn
-  port              = 80
+  port              = local.http_port
   protocol          = "HTTP"
   # By default, return a simple 404 page
   default_action {
@@ -100,17 +108,17 @@ resource "aws_security_group" "alb" {
   name = "terraform-example-alb"
   # Allow inbound HTTP requests
   ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = local.http_port
+    to_port     = local.http_port
+    protocol    = local.tcp_protocol
+    cidr_blocks = local.all_ips
   }
   # Allow all outbound requests
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = local.any_port
+    to_port     = local.any_port
+    protocol    = local.any_protocol
+    cidr_blocks = local.all_ips
   }
 }
 
@@ -144,13 +152,3 @@ resource "aws_lb_listener_rule" "asg" {
   }
 }
 
-terraform {
-  backend "s3" {
-    bucket = "h4tch-test-terraform-up-and-running-state"
-    key    = "stage/services/webserver-cluster/terraform.tfstate"
-    region = "us-east-2"
-
-    dynamodb_table = "h4tch-test-terraform-up-and-running-locks"
-    encrypt        = true
-  }
-}
